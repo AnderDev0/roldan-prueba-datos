@@ -7,10 +7,10 @@
   "porcentaje_validos": 83.3,
   "puntaje_promedio": 71.7,
   "errores": {
+    "estado no reconocido": 1,
     "costo_usd vacio o menor/igual a 0": 1,
-    "peso_kg vacio o menor/igual a 0": 1,
     "transportista sin contacto valido": 1,
-    "estado no reconocido": 1
+    "peso_kg vacio o menor/igual a 0": 1
   },
   "advertencias": {
     "digito de control del contenedor no coincide (ISO 6346)": 6,
@@ -25,6 +25,22 @@
         "estado no reconocido",
         "transportista sin contacto valido"
       ]
+    }
+  ],
+  "contingencias_aplicadas": [
+    {
+      "id_operacion": "OP-2026-002",
+      "puerto_destino_original": "BUENAVENTURA",
+      "puerto_destino": "TUMACO",
+      "costo_usd_original": "2100.00",
+      "costo_usd": "2352.00"
+    },
+    {
+      "id_operacion": "OP-2026-004",
+      "puerto_destino_original": "BUENAVENTURA",
+      "puerto_destino": "TUMACO",
+      "costo_usd_original": "1650.00",
+      "costo_usd": "1848.00"
     }
   ]
 }
