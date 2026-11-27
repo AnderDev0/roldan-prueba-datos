@@ -7,9 +7,9 @@
   "porcentaje_validos": 83.3,
   "puntaje_promedio": 71.7,
   "errores": {
-    "estado no reconocido": 1,
-    "costo_usd vacio o menor/igual a 0": 1,
     "transportista sin contacto valido": 1,
+    "costo_usd vacio o menor/igual a 0": 1,
+    "estado no reconocido": 1,
     "peso_kg vacio o menor/igual a 0": 1
   },
   "advertencias": {
