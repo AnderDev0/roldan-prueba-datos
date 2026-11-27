@@ -1,0 +1,12 @@
+{
+  "redireccion_puertos": [
+    {
+      "activa": true,
+      "puerto_bloqueado": "BUENAVENTURA",
+      "puerto_alterno": "TUMACO",
+      "recargo_pct": 12,
+      "excluir_estados": ["ENTREGADO"],
+      "motivo": "bloqueo del puerto de Buenaventura"
+    }
+  ]
+}
