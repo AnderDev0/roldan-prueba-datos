@@ -1,0 +1,8 @@
+$ python fase2_etl/etl_operaciones.py --input data/raw/operaciones_logisticas.csv --bucket roldan-prueba-anderson-2026 --perfil roldan
+2026-11-26 20:04:12,922 INFO leidos 6 registros de operaciones_logisticas.csv
+2026-11-26 20:04:13,041 INFO validos: 5 | rechazados: 1
+2026-11-26 20:04:13,497 INFO Found credentials in shared credentials file: ~/.aws/credentials
+2026-11-26 20:04:14,319 INFO subido s3://roldan-prueba-anderson-2026/calidad/fecha_proceso=2026-11-26/operaciones_logisticas.json
+2026-11-26 20:04:14,553 INFO subido s3://roldan-prueba-anderson-2026/clean/operaciones/anio=2026/mes=08/operaciones_logisticas.parquet
+2026-11-26 20:04:14,762 INFO subido s3://roldan-prueba-anderson-2026/raw/operaciones/fecha_proceso=2026-11-26/operaciones_logisticas.csv
+2026-11-26 20:04:14,980 INFO subido s3://roldan-prueba-anderson-2026/rechazados/operaciones/fecha_proceso=2026-11-26/operaciones_logisticas.parquet
