@@ -1,0 +1,40 @@
+SET
+CREATE FUNCTION
+
+=== caso 1: todo sale bien ===
+BEGIN
+ cambiar_estado 
+----------------
+ 
+(1 row)
+
+COMMIT
+ id_operacion | estado_anterior | estado_nuevo |       observacion       
+--------------+-----------------+--------------+-------------------------
+ OP-2026-002  |                 | EN_TRANSITO  | Carga inicial desde CSV
+ OP-2026-002  | EN_TRANSITO     | ADUANA       | llego a Buenaventura
+(2 rows)
+
+
+=== caso 2: el paso 1 funciona pero el paso 2 falla ===
+BEGIN
+UPDATE 1
+psql:fase1_modelo/04_acid_cambio_estado.sql:53: ERROR:  insert or update on table "historial_estado" violates foreign key constraint "historial_estado_estado_anterior_fkey"
+DETAIL:  Key (estado_anterior)=(RETRASAD) is not present in table "estado".
+ROLLBACK
+ id_operacion | estado_actual 
+--------------+---------------
+ OP-2026-004  | RETRASADO
+(1 row)
+
+
+=== caso 3: intentar reabrir una operacion ya entregada ===
+BEGIN
+psql:fase1_modelo/04_acid_cambio_estado.sql:62: ERROR:  la operacion OP-2026-001 ya esta en ENTREGADO y no se puede cambiar
+CONTEXT:  PL/pgSQL function cambiar_estado(character varying,character varying,text) line 18 at RAISE
+ROLLBACK
+ id_operacion | estado_actual | eventos_historial 
+--------------+---------------+-------------------
+ OP-2026-001  | ENTREGADO     |                 1
+(1 row)
+

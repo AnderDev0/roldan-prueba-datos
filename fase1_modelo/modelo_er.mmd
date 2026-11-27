@@ -1,0 +1,73 @@
+erDiagram
+    NAVIERA ||--o{ CONTENEDOR : "prefijo"
+    CONTENEDOR ||--o{ OPERACION : "se usa en"
+    TIPO_CARGA ||--o{ OPERACION : "clasifica"
+    PUERTO ||--o{ OPERACION : "origen"
+    PUERTO ||--o{ OPERACION : "destino"
+    TRANSPORTISTA ||--o{ OPERACION : "transporta"
+    COORDINADOR ||--o{ OPERACION : "coordina"
+    BODEGA ||--o{ OPERACION : "recibe"
+    ESTADO ||--o{ OPERACION : "estado actual"
+    OPERACION ||--|{ HISTORIAL_ESTADO : "trazabilidad"
+    ESTADO ||--o{ HISTORIAL_ESTADO : "estado nuevo"
+
+    OPERACION {
+        varchar id_operacion PK
+        char numero_contenedor FK
+        varchar codigo_tipo_carga FK
+        numeric peso_kg "mayor que 0"
+        char puerto_origen FK
+        char puerto_destino FK
+        varchar id_transportista FK
+        smallint id_coordinador FK
+        smallint id_bodega_destino FK
+        date fecha_arribo
+        varchar estado_actual FK
+        numeric costo_usd "mayor que 0"
+    }
+    HISTORIAL_ESTADO {
+        bigint id_evento PK
+        varchar id_operacion FK
+        varchar estado_anterior FK
+        varchar estado_nuevo FK
+        timestamptz fecha_evento
+        varchar usuario
+    }
+    CONTENEDOR {
+        char numero PK "ISO 6346"
+        char codigo_bic FK "calculado"
+    }
+    NAVIERA {
+        char codigo_bic PK
+        varchar nombre
+    }
+    TIPO_CARGA {
+        varchar codigo PK
+        varchar nombre
+        boolean requiere_refrigeracion
+        boolean es_peligrosa
+    }
+    PUERTO {
+        char codigo_locode PK
+        varchar nombre
+        char pais_iso "calculado"
+    }
+    TRANSPORTISTA {
+        varchar id_transportista PK
+        varchar razon_social
+        varchar email_contacto
+    }
+    COORDINADOR {
+        smallint id_coordinador PK
+        varchar nombre_completo
+    }
+    BODEGA {
+        smallint id_bodega PK
+        varchar nombre
+        varchar ciudad
+    }
+    ESTADO {
+        varchar codigo PK
+        varchar nombre
+        boolean es_final
+    }

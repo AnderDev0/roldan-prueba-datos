@@ -1,0 +1,30 @@
+{
+  "archivo": "operaciones_logisticas.csv",
+  "fecha_proceso": "2026-11-26",
+  "total_registros": 6,
+  "validos": 5,
+  "rechazados": 1,
+  "porcentaje_validos": 83.3,
+  "puntaje_promedio": 71.7,
+  "errores": {
+    "costo_usd vacio o menor/igual a 0": 1,
+    "peso_kg vacio o menor/igual a 0": 1,
+    "transportista sin contacto valido": 1,
+    "estado no reconocido": 1
+  },
+  "advertencias": {
+    "digito de control del contenedor no coincide (ISO 6346)": 6,
+    "arribo hace mas de 30 dias y sigue EN TRANSITO": 2
+  },
+  "rechazados_detalle": [
+    {
+      "id_operacion": "OP-2026-006",
+      "errores": [
+        "peso_kg vacio o menor/igual a 0",
+        "costo_usd vacio o menor/igual a 0",
+        "estado no reconocido",
+        "transportista sin contacto valido"
+      ]
+    }
+  ]
+}
