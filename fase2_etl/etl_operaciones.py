@@ -25,6 +25,7 @@ COLUMNAS_TEXTO = [
 PENALIDAD_ERROR = 25
 PENALIDAD_ADVERTENCIA = 10
 DIAS_MAX_EN_TRANSITO = 30
+CONTINGENCIAS = Path(__file__).parent / "config" / "contingencias.json"
 
 
 def leer_csv(ruta: Path) -> pl.DataFrame:
@@ -106,6 +107,41 @@ def validar(df: pl.DataFrame, fecha_proceso: date) -> pl.DataFrame:
     return df
 
 
+def aplicar_contingencias(df: pl.DataFrame, ruta_config: Path | None) -> pl.DataFrame:
+    """Redirige cargas de un puerto bloqueado a uno alterno y recalcula el costo.
+
+    Solo toca registros validos que no esten en un estado excluido (ej. ENTREGADO).
+    Siempre parte del valor original, asi que correrlo varias veces no acumula recargos.
+    """
+    if "puerto_destino_original" not in df.columns:
+        df = df.with_columns(
+            puerto_destino_original=pl.col("puerto_destino"),
+            costo_usd_original=pl.col("costo_usd"),
+            contingencia=pl.lit(None, dtype=pl.String),
+        )
+    if ruta_config is None or not ruta_config.exists():
+        return df
+
+    reglas = json.loads(ruta_config.read_text(encoding="utf-8")).get("redireccion_puertos", [])
+    for regla in (r for r in reglas if r.get("activa")):
+        aplica = (
+            (pl.col("puerto_destino_original") == regla["puerto_bloqueado"])
+            & ~pl.col("estado_actual").is_in(regla.get("excluir_estados", []))
+            & (pl.col("errores").list.len() == 0)
+        )
+        factor = 1 + regla["recargo_pct"] / 100
+        df = df.with_columns(
+            puerto_destino=pl.when(aplica).then(pl.lit(regla["puerto_alterno"])).otherwise(pl.col("puerto_destino")),
+            costo_usd=pl.when(aplica)
+            .then((pl.col("costo_usd_original").cast(pl.Float64) * factor).round(2).cast(pl.Decimal(12, 2)))
+            .otherwise(pl.col("costo_usd")),
+            contingencia=pl.when(aplica).then(pl.lit(regla["motivo"])).otherwise(pl.col("contingencia")),
+        )
+        log.info("contingencia '%s': %s registros redirigidos a %s",
+                 regla["motivo"], df.filter(aplica).height, regla["puerto_alterno"])
+    return df
+
+
 def escribir_salida(df: pl.DataFrame, carpeta: Path, archivo_origen: Path, fecha_proceso: date) -> dict:
     nombre = archivo_origen.stem
     df = df.with_columns(
@@ -148,6 +184,10 @@ def escribir_salida(df: pl.DataFrame, carpeta: Path, archivo_origen: Path, fecha
         "errores": conteo(df, "errores"),
         "advertencias": conteo(df, "advertencias"),
         "rechazados_detalle": rechazados.select("id_operacion", "errores").to_dicts(),
+        "contingencias_aplicadas": validos.filter(pl.col("contingencia").is_not_null())
+        .select("id_operacion", "puerto_destino_original", "puerto_destino", "costo_usd_original", "costo_usd")
+        .with_columns(pl.col("costo_usd_original", "costo_usd").cast(pl.String))
+        .to_dicts(),
     }
     ruta = carpeta / "calidad" / f"fecha_proceso={fecha_proceso}" / f"{nombre}.json"
     ruta.parent.mkdir(parents=True)
@@ -175,12 +215,14 @@ def subir_a_s3(carpeta: Path, bucket: str, prefijo: str = "", perfil: str | None
 
 
 def ejecutar(entrada: Path, salida: Path, bucket: str | None = None,
-             prefijo: str = "", perfil: str | None = None, fecha_proceso: date | None = None) -> dict:
+             prefijo: str = "", perfil: str | None = None, fecha_proceso: date | None = None,
+             contingencias: Path | None = CONTINGENCIAS) -> dict:
     fecha_proceso = fecha_proceso or date.today()
     df = leer_csv(entrada)
     log.info("leidos %s registros de %s", df.height, entrada.name)
 
     df = validar(limpiar(df), fecha_proceso)
+    df = aplicar_contingencias(df, contingencias)
     reporte = escribir_salida(df, salida, entrada, fecha_proceso)
     log.info("validos: %s | rechazados: %s", reporte["validos"], reporte["rechazados"])
 
@@ -196,10 +238,13 @@ def main():
     parser.add_argument("--bucket", help="bucket de S3; si no se pasa, solo se genera la salida local")
     parser.add_argument("--prefijo", default="", help="carpeta dentro del bucket")
     parser.add_argument("--perfil", help="perfil de AWS (~/.aws/credentials)")
+    parser.add_argument("--contingencias", default=CONTINGENCIAS, type=Path,
+                        help="reglas de redireccion de puertos (json)")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    reporte = ejecutar(args.input, args.salida, args.bucket, args.prefijo, args.perfil)
+    reporte = ejecutar(args.input, args.salida, args.bucket, args.prefijo, args.perfil,
+                       contingencias=args.contingencias)
     print(json.dumps(reporte, ensure_ascii=False, indent=2))
 
 
