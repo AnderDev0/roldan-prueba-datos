@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  etl-python:
+    name: ETL Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Pruebas
+        run: pytest -v
+      - name: ETL de punta a punta (sin S3)
+        run: python fase2_etl/etl_operaciones.py --input data/raw/operaciones_logisticas.csv --salida /tmp/salida
+
+  modelo-postgres:
+    name: Modelo 3NF en Postgres
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: roldan
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: roldan
+    steps:
+      - uses: actions/checkout@v5
+      - name: Crear modelo y cargar el CSV
+        run: |
+          psql -v ON_ERROR_STOP=1 -f fase1_modelo/01_ddl.sql
+          psql -v ON_ERROR_STOP=1 -f fase1_modelo/02_catalogos.sql
+          psql -v ON_ERROR_STOP=1 -f fase1_modelo/03_carga_desde_csv.sql
+      - name: Prueba ACID (los casos 2 y 3 fallan a proposito)
+        run: psql -f fase1_modelo/04_acid_cambio_estado.sql
+      - name: Verificar resultados
+        run: |
+          test "$(psql -tAc "select count(*) from logistica.operacion")" = "5"
+          test "$(psql -tAc "select count(*) from logistica.operacion_rechazada")" = "1"
+          test "$(psql -tAc "select estado_actual from logistica.operacion where id_operacion = 'OP-2026-002'")" = "ADUANA"
+          test "$(psql -tAc "select estado_actual from logistica.operacion where id_operacion = 'OP-2026-004'")" = "RETRASADO"
+          test "$(psql -tAc "select estado_actual from logistica.operacion where id_operacion = 'OP-2026-001'")" = "ENTREGADO"
+          echo "modelo, carga y transacciones OK"
